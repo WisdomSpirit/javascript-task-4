@@ -4,7 +4,7 @@
  * Сделано задание на звездочку
  * Реализованы методы several и through
  */
-const isStar = false;
+const isStar = true;
 
 function getAllEventsInChain(event) {
     const events = event.split('.');
@@ -32,7 +32,7 @@ function getObjectWithAllProperties(context, handler,
     return {
         context: context,
         handler: handler,
-        times: times,
+        timesRemain: times,
         frequency: frequency,
         callsCount: 0
     };
@@ -43,11 +43,12 @@ function realEmit(event, eventList) {
         .filter(e => e === event)
         .forEach(e => {
             eventList[e].forEach(student => {
-                if ((student.times - student.callsCount > 0) &&
+                if ((student.timesRemain > 0) &&
                     (student.callsCount % student.frequency === 0)) {
                     student.handler.call(student.context);
+                    student.timesRemain--;
                 }
-                student.callsCount += 1;
+                student.callsCount++;
             });
         });
 }
