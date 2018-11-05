@@ -6,6 +6,12 @@
  */
 const isStar = true;
 
+function checkConstraint(object, event, context, handler) {
+    if (typeof object !== 'number' || object < 1) {
+        this.on(event, context, handler);
+    }
+}
+
 function getAllEventsInChain(event) {
     const events = event.split('.');
     const resultEventList = [];
@@ -85,7 +91,7 @@ function getEmitter() {
          */
         off: function (event, context) {
             Object.keys(eventsList)
-                .filter(key => key.startsWith(event))
+                .filter(key => key === event || key.startsWith(event + '.'))
                 .forEach(key => {
                     for (let i = 0; i < eventsList[key].length; i++) {
                         if (eventsList[key][i].context === context) {
@@ -121,9 +127,7 @@ function getEmitter() {
          * @returns {Object} this
          */
         several: function (event, context, handler, times) {
-            if (typeof times !== 'number' || times < 1) {
-                this.on(event, context, handler);
-            }
+            checkConstraint(times, event, context, handler);
             safeGet(event, eventsList).push(getObjectWithAllProperties(context, handler, times));
 
             return this;
@@ -139,9 +143,7 @@ function getEmitter() {
          * @returns {Object} this
          */
         through: function (event, context, handler, frequency) {
-            if (typeof frequency !== 'number' || frequency < 1) {
-                this.on(event, context, handler);
-            }
+            checkConstraint(frequency, event, context, handler);
             safeGet(event, eventsList).push(
                 getObjectWithAllProperties(context, handler, undefined, frequency)
             );
