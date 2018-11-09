@@ -6,12 +6,6 @@
  */
 const isStar = true;
 
-function checkConstraint(object, event, context, handler) {
-    if (typeof object !== 'number' || object < 1) {
-        this.on(event, context, handler);
-    }
-}
-
 function getAllEventsInChain(event) {
     const events = event.split('.');
     const resultEventList = [];
@@ -44,19 +38,15 @@ function getObjectWithAllProperties(context, handler,
     };
 }
 
-function realEmit(event, eventList) {
-    Object.keys(eventList)
-        .filter(e => e === event)
-        .forEach(e => {
-            eventList[e].forEach(student => {
-                if ((student.timesRemain > 0) &&
-                    (student.callsCount % student.frequency === 0)) {
-                    student.handler.call(student.context);
-                    student.timesRemain--;
-                }
-                student.callsCount++;
-            });
-        });
+function handleEvent(eventsList, event) {
+    eventsList[event].forEach(student => {
+        if ((student.timesRemain > 0) &&
+            (student.callsCount % student.frequency === 0)) {
+            student.handler.call(student.context);
+            student.timesRemain--;
+        }
+        student.callsCount++;
+    });
 }
 
 /**
@@ -67,6 +57,12 @@ function getEmitter() {
     const eventsList = {};
 
     return {
+
+        checkConstraint: function (object, event, context, handler) {
+            if (typeof object !== 'number' || object < 1) {
+                this.on(event, context, handler);
+            }
+        },
 
         /**
          * Подписаться на событие
@@ -93,11 +89,8 @@ function getEmitter() {
             Object.keys(eventsList)
                 .filter(key => key === event || key.startsWith(event + '.'))
                 .forEach(key => {
-                    for (let i = 0; i < eventsList[key].length; i++) {
-                        if (eventsList[key][i].context === context) {
-                            eventsList[key].splice(i, 1);
-                        }
-                    }
+                    eventsList[key] = eventsList[key]
+                        .filter(student => student.context !== context);
                 });
 
             return this;
@@ -109,9 +102,11 @@ function getEmitter() {
          * @returns {Object} this
          */
         emit: function (event) {
-            const events = getAllEventsInChain(event);
-            events.forEach(e => {
-                realEmit(e, eventsList);
+            const parsedEvents = getAllEventsInChain(event);
+            parsedEvents.forEach(parsedEvent => {
+                Object.keys(eventsList)
+                    .filter(key => key === parsedEvent)
+                    .forEach(e => handleEvent(eventsList, e));
             });
 
             return this;
@@ -127,7 +122,7 @@ function getEmitter() {
          * @returns {Object} this
          */
         several: function (event, context, handler, times) {
-            checkConstraint(times, event, context, handler);
+            this.checkConstraint(times, event, context, handler);
             safeGet(event, eventsList).push(getObjectWithAllProperties(context, handler, times));
 
             return this;
@@ -143,7 +138,7 @@ function getEmitter() {
          * @returns {Object} this
          */
         through: function (event, context, handler, frequency) {
-            checkConstraint(frequency, event, context, handler);
+            this.checkConstraint(frequency, event, context, handler);
             safeGet(event, eventsList).push(
                 getObjectWithAllProperties(context, handler, undefined, frequency)
             );
